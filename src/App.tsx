@@ -2,8 +2,26 @@ import "./App.css";
 import { ActivityList } from "./data";
 import domtoimage from "dom-to-image";
 
+const addAttributesToImages = (htmlString: string) => {
+  return htmlString.replace(/<img/g, '<img decoding="sync" loading="eager"');
+};
+
+const waitFrames = (frameCount: number, callback: () => void) => {
+  let currentFrame = 0;
+
+  const frameStep = () => {
+    currentFrame++;
+    if (currentFrame >= frameCount) {
+      callback(); // 达到指定帧数后执行回调
+    } else {
+      requestAnimationFrame(frameStep); // 继续下一帧
+    }
+  };
+
+  requestAnimationFrame(frameStep); // 开始第一帧
+};
 function App() {
-  const exportImg = async () => {
+  const exportImg = async (isDown = false) => {
     const svgString = await domtoimage.toSvg(document.body!, {
       bgcolor: "dark",
     });
@@ -21,17 +39,21 @@ function App() {
       // 创建图像对象
       const img = new Image();
       img.crossOrigin = "anonymous"; // 设置跨域
-      console.log(svgString);
       img.onload = async () => {
         // 将图像绘制到 Canvas 上
         ctx!.drawImage(img!, 0, 0);
-        const a = document.createElement("a"); // 创建 a 标签
-        console.log(img.src);
-        a.href = URL.createObjectURL(await canvas.convertToBlob()); // 设置图片的 URL
-        a.download = "Arknights.png"; // 设置文件名
-        document.body.appendChild(a); // 将 a 标签临时添加到 DOM
-        a.click(); // 自动触发点击事件
-        document.body.removeChild(a); // 移除 a 标签
+        waitFrames(5, async () => {
+          if (isDown) {
+            const a = document.createElement("a"); // 创建 a 标签
+            console.log(img.src);
+            a.href = URL.createObjectURL(await canvas.convertToBlob()); // 设置图片的 URL
+            a.download = "Arknights.png"; // 设置文件名
+            document.body.appendChild(a); // 将 a 标签临时添加到 DOM
+            a.click(); // 自动触发点击事件
+            document.body.removeChild(a); // 移除 a 标签
+          }
+        });
+
         res(true);
       };
 
@@ -49,7 +71,15 @@ function App() {
         return <img src={item.img}></img>;
       })}
       <div>
-        <button onClick={exportImg}>导出</button>
+        <button
+          onClick={async () => {
+            await exportImg();
+            await exportImg();
+            await exportImg(true);
+          }}
+        >
+          导出
+        </button>
       </div>
     </div>
   );
